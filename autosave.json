@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "session": {
+    "session_name": "UNSC Day 2",
+    "committee": "UNSC",
+    "current_index": 1
+  },
+  "amendments": [
+    {
+      "submitter_delegate": "France",
+      "resolution_main_submitter": "United States",
+      "resolution_topic": "Climate Security",
+      "clause": "3",
+      "sub_clause": "c",
+      "sub_sub_clause": "ii",
+      "context": "Calls upon Member States to enhance cooperation on climate-related security risks, including information sharing and capacity building.",
+      "amendment_type": "ADD",
+      "text": "including through the establishment of regional climate security coordination mechanisms",
+      "reason": "Clarifies the means through which cooperation may be implemented.",
+      "friendly": false,
+      "id": "3b8b8f3a-4b5d-4b87-9d2f-01d9f3c6b5a1",
+      "created_at": "2026-01-12T08:15:30.000000"
+    },
+    {
+      "submitter_delegate": "United Kingdom",
+      "resolution_main_submitter": "United States",
+      "resolution_topic": "Climate Security",
+      "clause": "5",
+      "sub_clause": null,
+      "sub_sub_clause": null,
+      "context": "Requests the Secretary-General to report annually on the impacts of climate change on international peace and security.",
+      "amendment_type": "AMEND",
+      "text": "Requests the Secretary-General to report biennially on the impacts of climate change on international peace and security, with special attention to fragile and conflict-affected states.",
+      "reason": "Adjusts reporting frequency to balance administrative capacity with substantive oversight.",
+      "friendly": false,
+      "id": "8a4d2c91-1c6b-42fa-9a8e-6f4e9f3a2b11",
+      "created_at": "2026-01-12T08:22:10.000000"
+    },
+    {
+      "submitter_delegate": "Russian Federation",
+      "resolution_main_submitter": "United States",
+      "resolution_topic": "Climate Security",
+      "clause": "7",
+      "sub_clause": "a",
+      "sub_sub_clause": null,
+      "context": "Encourages the integration of climate risk assessments into peacekeeping mandates.",
+      "amendment_type": "STRIKE",
+      "text": null,
+      "reason": "The clause exceeds the Security Council\u2019s mandate and may interfere with national sovereignty.",
+      "friendly": false,
+      "id": "c2f7a1b3-91e5-4b6e-88a2-9d4b7e1c5f22",
+      "created_at": "2026-01-12T08:30:45.000000"
+    }
+  ]
+}
