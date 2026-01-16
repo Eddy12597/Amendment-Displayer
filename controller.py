@@ -3,9 +3,9 @@ from tkinter import ttk
 from typing import Optional
 
 class AmendmentController:
-    def __init__(self, session):
+    def __init__(self, session, path: str = "autosave.json"):
         self.session = session
-
+        self.source_path=path
     def next(self):
         self.session.next()
 
@@ -158,3 +158,10 @@ class AmendmentApp(tk.Tk):
 
     def _refresh(self):
         self.slide.render(self.session)
+    def save_to_source(self):
+        print("save_to_source called in AmendmentApp")
+        return
+        if not self.source_path:
+            raise RuntimeError("No source file to overwrite.")
+        self.save(self.source_path)
+

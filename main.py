@@ -60,6 +60,7 @@ class AmendmentSession:
     amendments: List[Amendment] = field(default_factory=list)
     current_index: int = 0
     schema_version: int = 1
+    source_path: str = "./session.json"
 
     # ---------- Navigation ----------
 
@@ -94,7 +95,10 @@ class AmendmentSession:
         amendment.reason = None if amendment.reason else amendment.reason
         # UI will decide how to interpret visibility
 
-    def save(self, path: str | pathlib.Path):
+    def save(self, path: str | pathlib.Path | None = None):
+        print(f"Save to: {path}")
+        if path is None:
+            path = self.source_path
         path = pathlib.Path(path)
         payload = {
             "schema_version": self.schema_version,

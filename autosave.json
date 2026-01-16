@@ -3,7 +3,7 @@
   "session": {
     "session_name": "UNSC Day 2",
     "committee": "UNSC",
-    "current_index": 1
+    "current_index": 0
   },
   "amendments": [
     {
@@ -17,7 +17,7 @@
       "amendment_type": "ADD",
       "text": "including through the establishment of regional climate security coordination mechanisms",
       "reason": "Clarifies the means through which cooperation may be implemented.",
-      "friendly": false,
+      "friendly": true,
       "id": "3b8b8f3a-4b5d-4b87-9d2f-01d9f3c6b5a1",
       "created_at": "2026-01-12T08:15:30.000000"
     },
@@ -32,7 +32,7 @@
       "amendment_type": "AMEND",
       "text": "Requests the Secretary-General to report biennially on the impacts of climate change on international peace and security, with special attention to fragile and conflict-affected states.",
       "reason": "Adjusts reporting frequency to balance administrative capacity with substantive oversight.",
-      "friendly": false,
+      "friendly": true,
       "id": "8a4d2c91-1c6b-42fa-9a8e-6f4e9f3a2b11",
       "created_at": "2026-01-12T08:22:10.000000"
     },
