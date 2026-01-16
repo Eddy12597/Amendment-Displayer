@@ -7,7 +7,6 @@
   },
   "amendments": [
     {
-      "id": "3b8b8f3a-4b5d-4b87-9d2f-01d9f3c6b5a1",
       "submitter_delegate": "France",
       "resolution_main_submitter": "United States",
       "resolution_topic": "Climate Security",
@@ -18,11 +17,11 @@
       "amendment_type": "ADD",
       "text": "including through the establishment of regional climate security coordination mechanisms",
       "reason": "Clarifies the means through which cooperation may be implemented.",
-      "friendly": false,
+      "friendly": true,
+      "id": "3b8b8f3a-4b5d-4b87-9d2f-01d9f3c6b5a1",
       "created_at": "2026-01-12T08:15:30.000000"
     },
     {
-      "id": "8a4d2c91-1c6b-42fa-9a8e-6f4e9f3a2b11",
       "submitter_delegate": "United Kingdom",
       "resolution_main_submitter": "United States",
       "resolution_topic": "Climate Security",
@@ -34,10 +33,10 @@
       "text": "Requests the Secretary-General to report biennially on the impacts of climate change on international peace and security, with special attention to fragile and conflict-affected states.",
       "reason": "Adjusts reporting frequency to balance administrative capacity with substantive oversight.",
       "friendly": true,
+      "id": "8a4d2c91-1c6b-42fa-9a8e-6f4e9f3a2b11",
       "created_at": "2026-01-12T08:22:10.000000"
     },
     {
-      "id": "c2f7a1b3-91e5-4b6e-88a2-9d4b7e1c5f22",
       "submitter_delegate": "Russian Federation",
       "resolution_main_submitter": "United States",
       "resolution_topic": "Climate Security",
@@ -47,8 +46,9 @@
       "context": "Encourages the integration of climate risk assessments into peacekeeping mandates.",
       "amendment_type": "STRIKE",
       "text": null,
-      "reason": "The clause exceeds the Security Council’s mandate and may interfere with national sovereignty.",
-      "friendly": false,
+      "reason": "The clause exceeds the Security Council\u2019s mandate and may interfere with national sovereignty.",
+      "friendly": true,
+      "id": "c2f7a1b3-91e5-4b6e-88a2-9d4b7e1c5f22",
       "created_at": "2026-01-12T08:30:45.000000"
     }
   ]

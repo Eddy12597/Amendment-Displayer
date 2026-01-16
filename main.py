@@ -96,7 +96,6 @@ class AmendmentSession:
         # UI will decide how to interpret visibility
 
     def save(self, path: str | pathlib.Path | None = None):
-        print(f"Save to: {path}")
         if path is None:
             path = self.source_path
         path = pathlib.Path(path)

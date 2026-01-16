@@ -29,7 +29,7 @@ class AmendmentSlide(ttk.Frame):
         self.reason_var = tk.StringVar()
         self.footer_var = tk.StringVar()
         self.badge_var = tk.StringVar()
-
+        self.save_status = tk.StringVar()
         self._build()
     
     def _build(self):
@@ -115,7 +115,7 @@ class AmendmentSlide(ttk.Frame):
         )
 
         self.footer_var.set(
-            f"{session.committee} | {session.current_index + 1} / {len(session.amendments)}"
+            f"{session.committee} | {session.current_index + 1} / {len(session.amendments)} {self.save_status.get()}"
         )
 
 class AmendmentApp(tk.Tk):
@@ -124,6 +124,7 @@ class AmendmentApp(tk.Tk):
 
         self.session = session
         self.controller = AmendmentController(session)
+        self.source_path = session.source_path
 
         self.attributes("-fullscreen", True)
         self.configure(background="black")
@@ -142,6 +143,8 @@ class AmendmentApp(tk.Tk):
 
         self.bind("f", self._toggle_friendly)
         self.bind("<Escape>", lambda e: self.destroy())
+        self.bind("<Control-s>", self.save_to_source)
+        self.bind("<Control-S>", self.save_to_source)
         
     def _next(self, event=None):
         self.controller.next()
@@ -153,15 +156,16 @@ class AmendmentApp(tk.Tk):
 
     def _toggle_friendly(self, event=None):
         self.controller.toggle_friendly()
+        self.slide.save_status.set(" [*]")
         self.controller.save()
         self._refresh()
+        
 
     def _refresh(self):
         self.slide.render(self.session)
-    def save_to_source(self):
-        print("save_to_source called in AmendmentApp")
-        return
+    def save_to_source(self, event=None):
         if not self.source_path:
             raise RuntimeError("No source file to overwrite.")
-        self.save(self.source_path)
-
+        self.controller.save(self.session.source_path)
+        self.slide.save_status.set("")
+        self._refresh()
