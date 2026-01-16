@@ -33,54 +33,66 @@ class AmendmentSlide(ttk.Frame):
         self._build()
     
     def _build(self):
+        # Configure column 0 to expand and add horizontal padding (margins)
         self.columnconfigure(0, weight=1)
+        
+        # Configure row 3 (or 4) to take up all remaining vertical space
+        # This pushes row 5 (the footer) to the absolute bottom
+        self.rowconfigure(3, weight=1)
+
+        # Adding a master padding to the grid call or the frame itself 
+        # handles the "left and right margins"
+        layout_padding = {'padx': 80, 'sticky': "ew"}
 
         self.title = ttk.Label(
             self,
             textvariable=self.title_var,
-            font=("Segoe UI", 32, "bold"),
+            font=("Segoe UI", 34, "bold"),
             anchor="center"
         )
-        self.title.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+        self.title.grid(row=0, column=0, pady=(50, 20), **layout_padding)
 
         self.badge = ttk.Label(
             self,
             textvariable=self.badge_var,
-            font=("Segoe UI", 14, "bold")
+            font=("Segoe UI", 16, "bold")
         )
-        self.badge.grid(row=1, column=0, sticky="e")
+        # Sticky 'e' keeps it to the right within the margined column
+        self.badge.grid(row=1, column=0, sticky="e", padx=40)
 
         self.context = ttk.Label(
             self,
             textvariable=self.context_var,
             wraplength=1200,
-            font=("Segoe UI", 16, "italic")
+            font=("Segoe UI", 18, "italic")
         )
-        self.context.grid(row=2, column=0, sticky="w", pady=20)
+        self.context.grid(row=2, column=0, pady=20, **layout_padding)
 
         self.action = ttk.Label(
             self,
             textvariable=self.action_var,
             wraplength=1200,
-            font=("Segoe UI", 22)
+            font=("Segoe UI", 24)
         )
-        self.action.grid(row=3, column=0, sticky="w", pady=20)
+        # This row has weight=1, so it will expand vertically
+        self.action.grid(row=3, column=0, pady=20, **layout_padding)
 
         self.reason = ttk.Label(
             self,
             textvariable=self.reason_var,
             wraplength=1200,
-            font=("Segoe UI", 16)
+            font=("Segoe UI", 18)
         )
-        self.reason.grid(row=4, column=0, sticky="w", pady=10)
+        self.reason.grid(row=4, column=0, pady=10, **layout_padding)
 
         self.footer = ttk.Label(
             self,
             textvariable=self.footer_var,
-            font=("Segoe UI", 12),
+            font=("Segoe UI", 14),
             anchor="e"
         )
-        self.footer.grid(row=5, column=0, sticky="e", pady=(30, 0))
+        # Sticky 'se' (South-East) ensures it stays at the bottom right
+        self.footer.grid(row=5, column=0, sticky="se", padx=40, pady=(30, 20))
         
         
     def render(self, session):
@@ -126,7 +138,7 @@ class AmendmentApp(tk.Tk):
         self.controller = AmendmentController(session)
         self.source_path = session.source_path
 
-        self.attributes("-fullscreen", True)
+        self.attributes("-fullscreen", False)
         self.configure(background="black")
 
         self.slide = AmendmentSlide(self)
