@@ -3,7 +3,7 @@
   "session": {
     "session_name": "UNSC Day 2",
     "committee": "UNSC",
-    "current_index": 1
+    "current_index": 2
   },
   "amendments": [
     {
@@ -47,7 +47,7 @@
       "amendment_type": "STRIKE",
       "text": null,
       "reason": "The clause exceeds the Security Council\u2019s mandate and may interfere with national sovereignty.",
-      "friendly": true,
+      "friendly": false,
       "id": "c2f7a1b3-91e5-4b6e-88a2-9d4b7e1c5f22",
       "created_at": "2026-01-12T08:30:45.000000"
     }
