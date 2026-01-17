@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional
+from util import Log, log, Lvl, endl
 
 class AmendmentController:
     def __init__(self, session, path: str = "autosave.json"):
         self.session = session
         self.source_path=path
+    @Log
     def next(self):
         self.session.next()
 
@@ -161,11 +163,13 @@ class AmendmentApp(tk.Tk):
         self.bind("<Escape>", lambda e: self.destroy())
         self.bind("<Control-s>", self.save_to_source)
         self.bind("<Control-S>", self.save_to_source)
-        
+    
+    @Log
     def _next(self, event=None):
         self.controller.next()
         self._refresh()
 
+    @Log
     def _prev(self, event=None):
         self.controller.prev()
         self._refresh()
@@ -179,6 +183,7 @@ class AmendmentApp(tk.Tk):
 
     def _refresh(self):
         self.slide.render(self.session)
+    @Log
     def save_to_source(self, event=None):
         if not self.source_path:
             raise RuntimeError("No source file to overwrite.")

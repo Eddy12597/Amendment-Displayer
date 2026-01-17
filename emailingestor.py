@@ -4,6 +4,7 @@ from email.header import decode_header
 from dataclasses import dataclass
 import dotenv
 import os
+from util import Log, log, endl, Lvl
 
 dotenv.load_dotenv(dotenv.find_dotenv())
 
@@ -12,11 +13,15 @@ class Email:
     _from: str
     subject: str
     body: str
+    
+    def __str__(self):
+        return f"Subject: {self.subject}\n\n{self.body}"
 
 class EmailIngestor:
-    def __init__(self, email: str | None = None, password: str | None = None, imap_server: str = "imap.gmail.com", imap_port: int = 993, init_num: int = 20, mailbox = "INBOX"):
-        self.email = email or os.getenv("EMAIL")
-        self.password = password or os.getenv("PASSKEY") or os.getenv("PASSWORD")
+    @Log # Removed Email and Password fields; it always retrieves from .env, so Logging is safe
+    def __init__(self, imap_server: str = "imap.gmail.com", imap_port: int = 993, init_num: int = 20, mailbox = "INBOX"):
+        self.email = os.getenv("EMAIL")
+        self.password = os.getenv("PASSKEY") or os.getenv("PASSWORD")
         
         if (not self.email) or (not self.password):
             raise Exception("Fields missing for email and password. Check if .env is created with\n\tEMAIL=<your email>\n\tPASSKEY=<app password>")
@@ -33,14 +38,13 @@ class EmailIngestor:
         self.mailbox = mailbox
         self.emailList: list[Email] = self.fetch_emails(init_num)
         
-    
+    @Log
     def pull(self) -> Email | None:
         em = self.fetch_emails(1)[0]
         if em == self.emailList[-1]:
             return
         self.emailList.append(em)
         return em
-        
     def fetch_emails(self, num: int = 20) -> list[Email]:
         try:
             status, response = self.mail.select(self.mailbox)
@@ -104,5 +108,3 @@ class EmailIngestor:
         
         return body[:length] + "..." if len(body) > length else body
                     
-                
-ingestor = EmailIngestor(imap_server="imap.163.com")

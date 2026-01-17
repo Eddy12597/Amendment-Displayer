@@ -1,0 +1,10 @@
+[2026-01-17T04:26:37.271868+00:00] [INFO] Function neg called with (5,) and {}
+[2026-01-17T04:26:37.272060+00:00] [INFO] Function neg returned: -5
+[2026-01-17T04:26:37.272441+00:00] [INFO] Function minus called with (10, 3) and {}
+[2026-01-17T04:26:37.272600+00:00] [INFO] Function minus returned: 7
+[2026-01-17T04:26:37.272935+00:00] [INFO] Function add called with (10, 3) and {}
+[2026-01-17T04:26:37.273106+00:00] [INFO] Function neg called with (3,) and {}
+[2026-01-17T04:26:37.273319+00:00] [INFO] Function neg returned: -3
+[2026-01-17T04:26:37.273430+00:00] [INFO] Function minus called with (10, -3) and {}
+[2026-01-17T04:26:37.273513+00:00] [INFO] Function minus returned: 13
+[2026-01-17T04:26:37.273664+00:00] [INFO] Function add returned: 13
