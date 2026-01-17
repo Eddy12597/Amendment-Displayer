@@ -65,7 +65,7 @@ class EmailIngestor:
         """
         Pull up to `max_new` new emails that haven't been seen yet.
         Returns a list of Email objects (empty if no new emails).
-        DO NOT place in rendering loops (time.sleep(0.1) (see fetch_emails) to avoid rate limiting)
+        DO NOT place in rendering loops (see fetch_emails)
         """
         # Fetch up to max_new new messages using UID tracking
         new_emails = self.fetch_emails(max_new)
@@ -90,7 +90,7 @@ class EmailIngestor:
     def fetch_emails(self, num: int = 10) -> list[Email]:
         """
         Fetch the latest `num` emails, using UID tracking to avoid re-fetching old messages.
-        DO NOT place in rendering loops (time.sleep(0.1) to avoid rate limiting)
+        DO NOT place in rendering loops (sleeps for a short time to avoid rate limiting)
         """
         try:
             # 1️⃣ Select mailbox
@@ -124,6 +124,7 @@ class EmailIngestor:
             res: list[Email] = []
 
             for uid_val in uid_list:
+                time.sleep(0.05)
                 typ, msg_data = self.mail.uid("FETCH", uid_val, "(RFC822)")
                 if typ != "OK":
                     log << Lvl.warn << f"Failed to fetch UID {uid_val}" << endl
@@ -182,5 +183,3 @@ class EmailIngestor:
         
         return body[:length] + "..." if len(body) > length else body
                     
-def test():
-    ingestor = EmailIngestor(imap_server="imap.163.com")

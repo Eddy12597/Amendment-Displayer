@@ -69,3 +69,18 @@ def Log(_func=None, *, logger=log):
     else:
         # Called without parentheses: @Log
         return decorator(_func)
+
+
+# Similarity
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
+
+def similarity(str1: str, str2: str) -> float:
+    def jaccard_similarity(str1, str2):
+        set1 = set(str1.split())
+        set2 = set(str2.split())
+        intersection = len(set1.intersection(set2))
+        union = len(set1.union(set2))
+        return intersection / union if union != 0 else 0
+    return (jaccard_similarity(str1, str2) + fuzz.ratio(str1, str2))/2
+    

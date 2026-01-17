@@ -1,17 +1,25 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field, asdict
-from enum import Enum
-from typing import List, Optional
-from uuid import uuid4
 from datetime import datetime
+from enum import Enum
 import json
-import pathlib
+import os
+from pathlib import Path
+from typing import Any, List, Optional
+import re
+from uuid import uuid4
+
+import dotenv
+from openai import OpenAI
+
 from controller import *
 from emailingestor import *
-import dotenv
-import os
-from util import log, endl, Lvl, Log
-from openai import OpenAI
+from reso.core.operationals import clause, subclause, subsubclause
+from reso.core.preambs import preamb
+from reso.core.resolution import Resolution
+from reso import document
+from util import *
 
 dotenv.load_dotenv(dotenv.find_dotenv())
 
@@ -47,27 +55,233 @@ class Amendment:
     def _validate(self):
         if self.amendment_type in {AmendmentType.ADD, AmendmentType.AMEND}:
             if not self.text or not self.text.strip():
-                log << Lvl.fatal << "ADD/AMEND amendments require non-empty text."
+                log << Lvl.warn << "ADD/AMEND-Empty Text" << endl
+                raise ValueError("ADD/AMEND amendments require non-empty text.")
 
         if self.amendment_type == AmendmentType.STRIKE:
             if self.text:
-                log << Lvl.fatal << "STRIKE amendments must not include text."
+                log << Lvl.warn << "STK-Text" << endl
+                raise ValueError("STRIKE amendments must not include text.")
 
         if not self.submitter_delegate.strip():
-            log << Lvl.fatal << "Submitter delegate cannot be empty."
+            log << Lvl.warn << "EMPTY-Sub" << endl
+            raise ValueError("Submitter delegate cannot be empty.")
 
         if not self.clause:
-            log << Lvl.fatal << "Clause must be specified."
+            log << Lvl.warn << "NO-CLAUSE" << endl
+            raise ValueError("Clause must be specified.")
     
     @classmethod
     @Log
-    def from_json(cls, js) -> Amendment:
-        raise NotImplementedError()
+    def from_json(cls, js: dict[str, Any]) -> Amendment | None:
+        """
+        Create an Amendment instance from a JSON-like dictionary.
+        Keys in js should correspond to Amendment fields.
+        """
+        if not isinstance(js, dict):
+            log << Lvl.warn << f"from_json expected dict, got {type(js)}" << endl
+            raise TypeError("Input must be a dictionary.")
+        if js == {} or js is None:
+            log << Lvl.warn << "Empty JSON for Amendment" << endl
+            return None
+        required_fields = ["submitter_delegate", "clause", "resolution_main_submitter", "resolution_topic"]
+        if any(field not in js or not js[field] for field in required_fields):
+            log << Lvl.warn << f"Missing required fields: {', '.join(f for f in required_fields if f not in js or not js[f])}" << endl
+            return None
+        # Extract values safely, fallback to None if missing
+        submitter_delegate = js.get("submitter_delegate", "").strip()
+        resolution_main_submitter = js.get("resolution_main_submitter", "").strip()
+        resolution_topic = js.get("resolution_topic", "").strip()
+        clause = js.get("clause", "").strip()
+        sub_clause = js.get("sub_clause")
+        sub_sub_clause = js.get("sub_sub_clause")
+        context = js.get("context", "")
+
+        # Handle AmendmentType, allow string input
+        amendment_type_val = js.get("amendment_type", "AMEND")
+        if isinstance(amendment_type_val, str):
+            try:
+                amendment_type = AmendmentType[amendment_type_val.upper()]
+            except KeyError:
+                log << Lvl.warn << f"Unknown amendment_type '{amendment_type_val}', defaulting to ADD" << endl
+                amendment_type = AmendmentType.ADD
+        else:
+            amendment_type = amendment_type_val  # assume already an AmendmentType
+
+        text = js.get("text")
+        reason = js.get("reason")
+        friendly = js.get("friendly", False)
+
+        # Optional: allow id and created_at to be set from JSON
+        id_val = js.get("id")
+        created_at_val = js.get("created_at")
+
+        return cls(
+            submitter_delegate=submitter_delegate,
+            resolution_main_submitter=resolution_main_submitter,
+            resolution_topic=resolution_topic,
+            clause=clause,
+            sub_clause=sub_clause,
+            sub_sub_clause=sub_sub_clause,
+            context=context,
+            amendment_type=amendment_type,
+            text=text,
+            reason=reason,
+            friendly=friendly,
+            id=id_val or str(uuid4()),
+            created_at=created_at_val or datetime.utcnow().isoformat(),
+        )
+    @classmethod
+    def infer_resolution(cls, amendment_list: list[Amendment], cur_id: int, reso_list: list[Resolution], basic_similarity_cutoff: int = 25) -> Resolution | None:
+        nearby_amendments: list[Amendment] = []
+        if len(amendment_list) > cur_id >= 0:
+            if cur_id == 0:
+                nearby_amendments.append(amendment_list[1])
+            else:
+                nearby_amendments.extend([amendment_list[cur_id-1], amendment_list[cur_id+1]])
+        ans = None
+        # both the same
+        if nearby_amendments[0].resolution_topic == nearby_amendments[1].resolution_topic:
+            r = None
+            maxsim = 0
+            sim_reso = None
+            for res in reso_list:
+                if res.topic == nearby_amendments[0].resolution_topic or (maxsim := max(similarity(res.topic, nearby_amendments[0].resolution_topic), maxsim)) >= basic_similarity_cutoff:
+                    log << Lvl.info << "Resolution topic " << res.topic << " and that from nearby amendment, " << nearby_amendments[0].resolution_topic << " currently has highest similarity score of " << maxsim << endl
+                    r = res.topic
+                    sim_reso = res
+            if r is None or sim_reso is None:
+                ans = None
+            else:
+                return sim_reso
+        else:
+            # decide based on which one has most similar match in
+            maxsims = [0, 0]
+            for i in range(2):
+                cur_amd_topic = nearby_amendments[i].resolution_topic
+                r = None
+                maxsim = 0
+                sim_reso = None
+                for res in reso_list:
+                    if res.topic == cur_amd_topic or (maxsim := max(similarity(res.topic, cur_amd_topic), maxsim)) >= basic_similarity_cutoff:
+                        log << Lvl.info << "Resolution topic " << res.topic << " and that from nearby amendment, " << cur_amd_topic << " currently has highest similarity score of " << maxsim << endl
+                        r = res.topic
+                        sim_reso = res
+                if r is None or sim_reso is None:
+                    ans = None
+                else:
+                    maxsims[i] = maxsim
+                    # TODO
+                    
+                
+                    
+
+                
+    
+    @classmethod
+    def attempt_basic_parsing(cls, em: Email) -> Amendment | None:
+        """
+        Basic parsing to extract a single Amendment from an email without AI.
+        Handles common patterns like Submitter, Delegate, Clause, Action/Amendment Type, Text, Reason.
+        Returns None if required fields cannot be found.
+        """
+        body = getattr(em, "body", "") or ""
+        subject = getattr(em, "subject", "") or ""
+        lines = body.splitlines()
+
+        # Map common label synonyms to standardized keys
+        field_patterns = {
+            "submitter_delegate": [
+                r"Submitter\s*:\s*(.+)",
+                r"Delegate\s*:\s*(.+)"
+            ],
+            "amendment_type": [
+                r"Amendment Type\s*:\s*(ADD|AMEND|STRIKE)",
+                r"Action\s*:\s*(ADD|AMEND|STRIKE)",
+                r"Amendment\s*:\s*(ADD|AMEND|STRIKE)"
+            ],
+            "resolution_main_submitter": [
+                r"Resolution\s*:\s*(?:On .+), by (.+)",
+                r"Resolution Topic\s*:\s*(?:On .+)",
+                r"Main Submitter\s*:\s*(.+)"
+            ],
+            "resolution_topic": [
+                r"Resolution\s*:\s*(On .+?), by .+",
+                r"Resolution Topic\s*:\s*(On .+)",
+            ],
+            "clause": [
+                r"Clause\s*[: ]\s*([\d\.\w]+)",
+                r"Location\s*:\s*Clause\s*([\d\.\w]+)",
+                r"Target\s*:\s*Clause\s*([\d\.\w]+)"
+            ],
+            "sub_clause": [
+                r"Sub[- ]?clause\s*[: ]\s*([\da-z\(\)]+)"
+            ],
+            "sub_sub_clause": [
+                r"Sub[- ]?sub[- ]?clause\s*[: ]\s*([\da-z\(\)]+)"
+            ],
+            "text": [
+                r"New Text\s*:\s*(.+)",
+                r"Revised Wording\s*:\s*(.+)",
+                r"We propose\s*:\s*(.+)",
+            ],
+            "reason": [
+                r"Reason\s*:\s*(.+)",
+                r"Justification\s*:\s*(.+)"
+            ]
+        }
+
+        def extract_first_match(patterns):
+            for pat in patterns:
+                match = re.search(pat, body, re.IGNORECASE | re.DOTALL)
+                if match:
+                    return match.group(1).strip()
+            return None
+
+        # Extract fields
+        submitter_delegate = extract_first_match(field_patterns["submitter_delegate"])
+        amendment_type_str = extract_first_match(field_patterns["amendment_type"])
+        amendment_type = AmendmentType[amendment_type_str.upper()] if amendment_type_str else AmendmentType.ADD
+        resolution_main_submitter = extract_first_match(field_patterns["resolution_main_submitter"]) or submitter_delegate
+        resolution_topic = extract_first_match(field_patterns["resolution_topic"]) or ""
+        clause = extract_first_match(field_patterns["clause"])
+        sub_clause = extract_first_match(field_patterns["sub_clause"])
+        sub_sub_clause = extract_first_match(field_patterns["sub_sub_clause"])
+        if clause:
+            # Split clause like "4.a.ii" → clause="4", sub_clause="a", sub_sub_clause="ii"
+            parts = clause.split(".")
+            if len(parts) >= 1:
+                clause = parts[0]
+            if len(parts) >= 2:
+                sub_clause = sub_clause or parts[1]
+            if len(parts) >= 3:
+                sub_sub_clause = sub_sub_clause or parts[2]
+        text = extract_first_match(field_patterns["text"]) if amendment_type in {AmendmentType.ADD, AmendmentType.AMEND} else None
+        reason = extract_first_match(field_patterns["reason"])
+        context = body
+
+        # Validate required fields
+        if not submitter_delegate or not clause: # or not resolution_main_submitter:
+            log << Lvl.warn << "Basic parsing failed: missing required fields" << endl
+            return None
+        
+        return cls(
+            submitter_delegate=submitter_delegate,
+            resolution_main_submitter=resolution_main_submitter,
+            resolution_topic=resolution_topic,
+            clause=clause,
+            sub_clause=sub_clause,
+            sub_sub_clause=sub_sub_clause,
+            text=text,
+            reason=reason,
+            amendment_type=amendment_type,
+            context=context
+        )
     
     @classmethod
     @Log
-    def from_email(cls, em: Email) -> Amendment:
-        if os.getenv("DEEPSEEK_API_KEY") != "":
+    def from_email(cls, em: Email, use_ai_if_possible: bool = True) -> Amendment | None:
+        if os.getenv("DEEPSEEK_API_KEY") != "" and use_ai_if_possible:
             client = OpenAI(
                 api_key=os.getenv("DEEPSEEK_API_KEY"),
                 base_url="https://api.deepseek.com"
@@ -91,8 +305,7 @@ class Amendment:
             ans = json.loads(response.choices[0].message.content or "{}")
             return Amendment.from_json(ans)
         else:
-            # attempt basic parsing
-            raise NotImplementedError()
+            return Amendment.attempt_basic_parsing(em)
 
 @dataclass
 class AmendmentSession:
@@ -188,6 +401,7 @@ class AmendmentSession:
 
 
 if __name__ == "__main__":
+    ingestor: EmailIngestor = EmailIngestor(imap_server="imap.163.com")
     session = AmendmentSession.load("session.json")
     app = AmendmentApp(session)
     app.mainloop()
