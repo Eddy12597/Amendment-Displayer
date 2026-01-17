@@ -1,0 +1,8 @@
+Submitter: France
+Amendment Type: ADD
+Resolution: On Peacekeeping Operations, by United Kingdom
+Clause: 3
+Sub-clause: b
+Context: The current clause 3.b reads "Encourages regional cooperation"
+New Text: Establishes a rapid deployment fund of $50 million for peacekeeping operations in Sub-Saharan Africa.
+Reason: Provides necessary financial mechanisms for effective regional peacekeeping.

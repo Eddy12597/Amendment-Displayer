@@ -1,0 +1,6 @@
+This is Singapore. Regarding the US resolution on digital trade:
+
+Clause 2.c needs adjustment. It currently reads "Promotes open data standards."
+We propose: "Promotes interoperable open data standards, with due regard for data privacy and sovereignty concerns."
+
+Reason: Adds necessary qualifiers for broader acceptance.

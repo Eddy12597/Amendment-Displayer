@@ -1,0 +1,6 @@
+Delegate: China
+Amendment: STRIKE
+Resolution: On Artificial Intelligence Governance, main sponsor: United States
+Target: Clause 4.a.ii
+Original Text: "Calls upon member states to establish moratoriums on autonomous weapon systems development"
+Reason: This language is overly restrictive and impedes legitimate defensive research.

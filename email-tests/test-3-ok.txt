@@ -1,0 +1,9 @@
+Submitter: Germany
+Action: AMEND
+Resolution Topic: On Sustainable Development Goals Acceleration
+Main Submitter: Brazil
+Location: Clause 7.c.i
+Existing Wording: "Recommends increased ODA to 0.7% of GNI by 2030"
+Revised Wording: "Mandates developed nations to allocate 0.7% of GNI as ODA by 2028, with 50% directed to climate adaptation projects"
+Context: The current language is insufficiently binding.
+Justification: Accelerated timeline and earmarked funding are necessary to achieve SDG targets.
