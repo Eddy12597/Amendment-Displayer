@@ -83,6 +83,10 @@ class AmendmentSession:
     def last(self):
         if self.amendments:
             self.current_index = len(self.amendments) - 1
+            
+    def add_amendment(self, amendment: Amendment) -> None:
+        self.amendments.append(amendment)
+        
     
     # ---------- Chair controls ----------
 

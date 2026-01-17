@@ -30,6 +30,8 @@ class AmendmentSlide(ttk.Frame):
         self.footer_var = tk.StringVar()
         self.badge_var = tk.StringVar()
         self.save_status = tk.StringVar()
+        
+        
         self._build()
     
     def _build(self):
@@ -39,6 +41,7 @@ class AmendmentSlide(ttk.Frame):
         # Configure row 3 (or 4) to take up all remaining vertical space
         # This pushes row 5 (the footer) to the absolute bottom
         self.rowconfigure(3, weight=1)
+        
 
         # Adding a master padding to the grid call or the frame itself 
         # handles the "left and right margins"
@@ -48,7 +51,8 @@ class AmendmentSlide(ttk.Frame):
             self,
             textvariable=self.title_var,
             font=("Segoe UI", 34, "bold"),
-            anchor="center"
+            anchor="center",
+            foreground="#0A4D7F"
         )
         self.title.grid(row=0, column=0, pady=(50, 20), **layout_padding)
 
