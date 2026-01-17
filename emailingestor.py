@@ -1,4 +1,4 @@
-import imaplib as im
+import imaplib2 as im
 import email
 from email.header import decode_header
 from dataclasses import dataclass
@@ -19,7 +19,7 @@ class Email:
 
 class EmailIngestor:
     @Log # Removed Email and Password fields; it always retrieves from .env, so Logging is safe
-    def __init__(self, imap_server: str = "imap.gmail.com", imap_port: int = 993, init_num: int = 20, mailbox = "INBOX"):
+    def __init__(self, imap_server: str = "imap.gmail.com", imap_port: int = 993, init_num: int = 20, mailbox = "INBOX", support_email: str | None = None):
         self.email = os.getenv("EMAIL")
         self.password = os.getenv("PASSKEY") or os.getenv("PASSWORD")
         
@@ -27,14 +27,35 @@ class EmailIngestor:
             raise Exception("Fields missing for email and password. Check if .env is created with\n\tEMAIL=<your email>\n\tPASSKEY=<app password>")
         
         self.imap_server = imap_server
+        self.support_email = support_email or self.email
+        status, response = None, None
         try:
             self.mail = im.IMAP4_SSL(self.imap_server, imap_port)
             self.mail.login(self.email, self.password)
+            try:
+                id_payload = (
+                    '("name" "MUN-Amendment-Displayer" '
+                    '"version" "1.0.0" '
+                    '"vendor" "BIPH Model United Nations Team" '
+                    f'"support-email" "{self.support_email}")'
+                )
+                sta, res = self.mail._simple_command("ID", id_payload)
+                                                            
+                if sta != "OK":
+                    log << Lvl.warn << "ID Command warning: Status: " << sta << ", Response: " << res << endl
+                else:
+                    print(f"ID Command successful")
+            except Exception as e:
+                log << (Lvl.fatal if ".163.com" in self.imap_server else Lvl.warn) << f"ID Command failed: {e}" << endl
+                
+            
         except im.IMAP4.error as e:
-            print(f"Error: {e}")
+            log << Lvl.fatal << f"Error: {e}" << endl
             print("Please check if you have enabled IMAP protocol in your email client, or check the imap server address")
+            print(f"Status: {status}")
+            print(f"Response: {response}")
             raise
-        print("Login Successful!")
+        log << Lvl.info << "Login Successful" << endl
         self.mailbox = mailbox
         self.emailList: list[Email] = self.fetch_emails(init_num)
         
@@ -45,6 +66,7 @@ class EmailIngestor:
             return
         self.emailList.append(em)
         return em
+    
     def fetch_emails(self, num: int = 20) -> list[Email]:
         try:
             status, response = self.mail.select(self.mailbox)
@@ -53,6 +75,7 @@ class EmailIngestor:
                 raise Exception(f"Failed to select mailbox: {self.mailbox}")
             
             _, messages = self.mail.search(None, "ALL")
+            
             email_ids = messages[0].split()
             
             res: list[Email] = []
@@ -108,3 +131,5 @@ class EmailIngestor:
         
         return body[:length] + "..." if len(body) > length else body
                     
+def test():
+    ingestor = EmailIngestor(imap_server="imap.163.com")
