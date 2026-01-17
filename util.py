@@ -1,16 +1,20 @@
+# pyright: ignore[reportUnusedExpression]
+
 import sys
 from datetime import datetime, timezone
 import functools
 
-class _endl_t:
-    def __init__(self) -> None:
-        self.id = 67
+class _flush_t:
+    def __init__(self, content: str = "") -> None:
+        self.content = content
 
 class Lvl:
-    INFO = info = "[INFO] "
-    WARN = warn = "[WARN] "
-    FATAL = fatal = "[FATAL] "
-endl = _endl_t()
+    INFO = info = Info = "[INFO] "
+    WARN = warn = Warn = "[WARN] "
+    FATAL = fatal = Fatal = "[FATAL] "
+
+flush = _flush_t()
+endl = _flush_t(content="\n")
 
 class TeeLogger:
     def __init__(self, *files) -> None:
@@ -21,11 +25,11 @@ class TeeLogger:
         self.raise_afterward = False
     
     def __lshift__(self, other) -> 'TeeLogger':
-        if isinstance(other, _endl_t):
+        if isinstance(other, _flush_t):
             for f in self.files:
                 f.write(f"[{datetime.now(timezone.utc).isoformat()}] ")
                 f.write(self.content)
-                f.write("\n")
+                f.write(other.content)
                 f.flush()
             self.content = ""
             if self.raise_afterward:
@@ -44,11 +48,15 @@ def Log(_func=None, *, logger=log):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            logger << Lvl.INFO << f"Function {func.__name__} called with {args} and {kwargs}" << endl
+            logger << Lvl.INFO << f"Function {func.__name__} called with {args}{f" and {kwargs}" if kwargs else ""}" << endl # pyright: ignore[reportUnusedExpression]
             
-            result = func(*args, **kwargs)
+            try:
+                result = func(*args, **kwargs)
+            except Exception as e:
+                logger << Lvl.FATAL << f"Function {func.__name__} raised an error: {e}" << endl # pyright: ignore[reportUnusedExpression]
+                raise
             
-            logger << Lvl.INFO << f"Function {func.__name__} returned: {result}" << endl
+            logger << Lvl.INFO << f"Function {func.__name__} returned: {result}" << endl # pyright: ignore[reportUnusedExpression]
             return result
         return wrapper
     
