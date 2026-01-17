@@ -3,15 +3,16 @@
 import sys
 from datetime import datetime, timezone
 import functools
+from colorama import Fore, Style
 
 class _flush_t:
     def __init__(self, content: str = "") -> None:
         self.content = content
 
 class Lvl:
-    INFO = info = Info = "[INFO] "
-    WARN = warn = Warn = "[WARN] "
-    FATAL = fatal = Fatal = "[FATAL] "
+    INFO = info = Info = f"[INFO] "
+    WARN = warn = Warn = f"[WARN] "
+    FATAL = fatal = Fatal = f"[FATAL] "
 
 flush = _flush_t()
 endl = _flush_t(content="\n")
@@ -36,8 +37,9 @@ class TeeLogger:
                 raise RuntimeError(self.content)
             else:
                 return self
-        elif other == Lvl.FATAL:
-            self.raise_afterward = True
+        elif isinstance(other, Lvl):
+            if other == Lvl.FATAL:
+                self.raise_afterward = True
         self.content += other
         return self
     
