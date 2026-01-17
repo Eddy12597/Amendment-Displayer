@@ -7,6 +7,13 @@ from datetime import datetime
 import json
 import pathlib
 from controller import *
+from emailingestor import *
+import dotenv
+import os
+from util import log, endl, Lvl, Log
+from openai import OpenAI
+
+dotenv.load_dotenv(dotenv.find_dotenv())
 
 class AmendmentType(Enum):
     ADD = "ADD"
@@ -40,20 +47,56 @@ class Amendment:
     def _validate(self):
         if self.amendment_type in {AmendmentType.ADD, AmendmentType.AMEND}:
             if not self.text or not self.text.strip():
-                raise ValueError("ADD / AMEND amendments require non-empty text.")
+                log << Lvl.fatal << "ADD/AMEND amendments require non-empty text."
 
         if self.amendment_type == AmendmentType.STRIKE:
             if self.text:
-                raise ValueError("STRIKE amendments must not include text.")
+                log << Lvl.fatal << "STRIKE amendments must not include text."
 
         if not self.submitter_delegate.strip():
-            raise ValueError("Submitter delegate cannot be empty.")
+            log << Lvl.fatal << "Submitter delegate cannot be empty."
 
         if not self.clause:
-            raise ValueError("Clause must be specified.")
+            log << Lvl.fatal << "Clause must be specified."
+    
+    @classmethod
+    @Log
+    def from_json(cls, js) -> Amendment:
+        raise NotImplementedError()
+    
+    @classmethod
+    @Log
+    def from_email(cls, em: Email) -> Amendment:
+        if os.getenv("DEEPSEEK_API_KEY") != "":
+            client = OpenAI(
+                api_key=os.getenv("DEEPSEEK_API_KEY"),
+                base_url="https://api.deepseek.com"
+            )
+            with open("./system_prompt.txt") as f:
+                system_prompt = f.read()
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"""
+                     Please Extract an Amendment from the following:
+                     {em}
+                     """}
+                ],
+                response_format={
+                    "type": "json_object"
+                },
+                stream=False
+            )
+            ans = json.loads(response.choices[0].message.content or "{}")
+            return Amendment.from_json(ans)
+        else:
+            # attempt basic parsing
+            raise NotImplementedError()
 
 @dataclass
 class AmendmentSession:
+    
     session_name: str
     committee: str
 
@@ -83,7 +126,7 @@ class AmendmentSession:
     def last(self):
         if self.amendments:
             self.current_index = len(self.amendments) - 1
-            
+    @Log
     def add_amendment(self, amendment: Amendment) -> None:
         self.amendments.append(amendment)
         
@@ -99,6 +142,7 @@ class AmendmentSession:
         amendment.reason = None if amendment.reason else amendment.reason
         # UI will decide how to interpret visibility
 
+    @Log
     def save(self, path: str | pathlib.Path | None = None):
         if path is None:
             path = self.source_path
@@ -119,9 +163,10 @@ class AmendmentSession:
             ]
         }
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    
+        return json.dumps(payload, indent=2)
     
     @classmethod
+    @Log
     def load(cls, path: str | pathlib.Path) -> AmendmentSession:
         path = pathlib.Path(path)
         data = json.loads(path.read_text(encoding="utf-8"))
