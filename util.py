@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timezone
 import functools
 from colorama import Fore, Style
+import html2text
 
 class _flush_t:
     def __init__(self, content: str = "") -> None:
@@ -83,4 +84,13 @@ def similarity(str1: str, str2: str) -> float:
         union = len(set1.union(set2))
         return intersection / union if union != 0 else 0
     return (jaccard_similarity(str1, str2) + fuzz.ratio(str1, str2))/2
-    
+
+
+def html_to_text(html_body: str) -> str:
+    h = html2text.HTML2Text()
+    h.ignore_links = True
+    h.ignore_images = True
+    h.ignore_tables = False
+    h.body_width = 0  # no hard wrapping
+
+    return h.handle(html_body).strip()

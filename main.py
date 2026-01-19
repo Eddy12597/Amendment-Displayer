@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
+import html2text
 import json
 import os
 from pathlib import Path
@@ -31,8 +32,8 @@ class AmendmentType(Enum):
 @dataclass
 class Amendment:
     submitter_delegate: str
-    resolution_main_submitter: str
-    resolution_topic: str
+    resolution_main_submitter: Optional[str]
+    resolution_topic: Optional[str]
 
     clause: str
     sub_clause: Optional[str] = None
@@ -47,7 +48,7 @@ class Amendment:
     friendly: bool = False
 
     id: str = field(default_factory=lambda: str(uuid4()))
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self):
         self._validate()
@@ -84,14 +85,15 @@ class Amendment:
         if js == {} or js is None:
             log << Lvl.warn << "Empty JSON for Amendment" << endl
             return None
-        required_fields = ["submitter_delegate", "clause", "resolution_main_submitter", "resolution_topic"]
+        required_fields = ["submitter_delegate", "clause"]#, "resolution_main_submitter", "resolution_topic"]
         if any(field not in js or not js[field] for field in required_fields):
             log << Lvl.warn << f"Missing required fields: {', '.join(f for f in required_fields if f not in js or not js[f])}" << endl
             return None
         # Extract values safely, fallback to None if missing
         submitter_delegate = js.get("submitter_delegate", "").strip()
-        resolution_main_submitter = js.get("resolution_main_submitter", "").strip()
-        resolution_topic = js.get("resolution_topic", "").strip()
+        resolution_main_submitter = js.get("resolution_main_submitter")
+        resolution_topic = js.get("resolution_topic")
+
         clause = js.get("clause", "").strip()
         sub_clause = js.get("sub_clause")
         sub_sub_clause = js.get("sub_sub_clause")
@@ -103,8 +105,8 @@ class Amendment:
             try:
                 amendment_type = AmendmentType[amendment_type_val.upper()]
             except KeyError:
-                log << Lvl.warn << f"Unknown amendment_type '{amendment_type_val}', defaulting to ADD" << endl
-                amendment_type = AmendmentType.ADD
+                log << Lvl.warn << f"Unknown amendment_type '{amendment_type_val}', defaulting to AMEND" << endl
+                amendment_type = AmendmentType.AMEND
         else:
             amendment_type = amendment_type_val  # assume already an AmendmentType
 
@@ -131,6 +133,7 @@ class Amendment:
             id=id_val or str(uuid4()),
             created_at=created_at_val or datetime.utcnow().isoformat(),
         )
+    
     @classmethod
     def infer_resolution(cls, amendment_list: list[Amendment], cur_id: int, reso_list: list[Resolution], basic_similarity_cutoff: int = 25) -> Resolution | None:
         nearby_amendments: list[Amendment] = []
@@ -156,7 +159,8 @@ class Amendment:
                 return sim_reso
         else:
             # decide based on which one has most similar match in
-            maxsims = [0, 0]
+            sims: list[float] = [0, 0]
+            resos: list[Resolution | None] = [None, None]
             for i in range(2):
                 cur_amd_topic = nearby_amendments[i].resolution_topic
                 r = None
@@ -170,11 +174,13 @@ class Amendment:
                 if r is None or sim_reso is None:
                     ans = None
                 else:
-                    maxsims[i] = maxsim
-                    # TODO
-                    
-                
-                    
+                    sims[i] = maxsim
+                    resos[i] = sim_reso
+            if sims[0] > sims[1]:
+                ans = resos[0] or None
+            else:
+                ans = resos[1] or None
+        return ans                    
 
                 
     
@@ -231,12 +237,16 @@ class Amendment:
             ]
         }
 
-        def extract_first_match(patterns):
+        def extract_first_match(patterns: list[str]):
             for pat in patterns:
-                match = re.search(pat, body, re.IGNORECASE | re.DOTALL)
+                match = re.search(pat, body, re.IGNORECASE)# | re.DOTALL)
                 if match:
-                    return match.group(1).strip()
+                    if match.lastindex:  # at least one capture group
+                        return match.group(1).strip()
+                    else:
+                        return match.group(0).strip()
             return None
+
 
         # Extract fields
         submitter_delegate = extract_first_match(field_patterns["submitter_delegate"])
@@ -281,7 +291,7 @@ class Amendment:
     @classmethod
     @Log
     def from_email(cls, em: Email, use_ai_if_possible: bool = True) -> Amendment | None:
-        if os.getenv("DEEPSEEK_API_KEY") != "" and use_ai_if_possible:
+        if os.getenv("DEEPSEEK_API_KEY") and use_ai_if_possible:
             client = OpenAI(
                 api_key=os.getenv("DEEPSEEK_API_KEY"),
                 base_url="https://api.deepseek.com"
@@ -312,6 +322,7 @@ class AmendmentSession:
     
     session_name: str
     committee: str
+    ingestor: EmailIngestor | None = None
 
     amendments: List[Amendment] = field(default_factory=list)
     current_index: int = 0
@@ -339,7 +350,17 @@ class AmendmentSession:
     def last(self):
         if self.amendments:
             self.current_index = len(self.amendments) - 1
-    @Log
+    
+    def pull_from_email(self):
+        if self.ingestor:
+            emails = self.ingestor.pull()
+            for em in emails:
+                am = Amendment.from_email(em)
+                if am:
+                    self.add_amendment(am)
+        else:
+            log << Lvl.warn << "AmendmentSession.pull_from_email(self): ingestor not bound to session" << endl
+    
     def add_amendment(self, amendment: Amendment) -> None:
         self.amendments.append(amendment)
         
@@ -352,14 +373,15 @@ class AmendmentSession:
 
     def toggle_reason_visibility(self):
         amendment = self.current()
-        amendment.reason = None if amendment.reason else amendment.reason
+        amendment.reason = None if amendment.reason else amendment.reason # ?
         # UI will decide how to interpret visibility
-
+        pass
+    
     @Log
-    def save(self, path: str | pathlib.Path | None = None):
+    def save(self, path: str | Path | None = None):
         if path is None:
             path = self.source_path
-        path = pathlib.Path(path)
+        path = Path(path)
         payload = {
             "schema_version": self.schema_version,
             "session": {
@@ -380,8 +402,8 @@ class AmendmentSession:
     
     @classmethod
     @Log
-    def load(cls, path: str | pathlib.Path) -> AmendmentSession:
-        path = pathlib.Path(path)
+    def load(cls, path: str | Path) -> AmendmentSession:
+        path = Path(path)
         data = json.loads(path.read_text(encoding="utf-8"))
 
         session_info = data["session"]
@@ -399,9 +421,12 @@ class AmendmentSession:
         )
         return session
 
-
-if __name__ == "__main__":
+def main():
     ingestor: EmailIngestor = EmailIngestor(imap_server="imap.163.com")
     session = AmendmentSession.load("session.json")
+    session.ingestor = ingestor
     app = AmendmentApp(session)
     app.mainloop()
+
+if __name__ == "__main__":
+    main()

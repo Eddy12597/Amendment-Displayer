@@ -6,6 +6,7 @@ import dotenv
 import os
 from util import Log, log, endl, Lvl
 import time
+from util import *
 
 dotenv.load_dotenv(dotenv.find_dotenv())
 
@@ -160,7 +161,7 @@ class EmailIngestor:
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
-                content_disposition = str(part.get("Content-Disposition"))
+                content_disposition = str(part.get("Content-Disposition", ""))
                 
                 if "attachment" in content_disposition:
                     continue
@@ -169,7 +170,7 @@ class EmailIngestor:
                     try:
                         charset = part.get_content_charset() or 'utf-8'
                         part_body = part.get_payload(decode=True).decode(charset, errors='ignore')
-                        body += part_body + "\n"
+                        body += html_to_text(part_body) + "\n"
                     except Exception as e:
                         body += f"[Error reading part: {e}]\n"
         else:
@@ -177,6 +178,7 @@ class EmailIngestor:
             try:
                 charset = msg.get_content_charset() or 'utf-8'
                 body = msg.get_payload(decode=True).decode(charset, errors='ignore')
+                return html_to_text(body) if "<html" in body.lower() else body
             except Exception as e:
                 body = f"[Error reading body: {e}]"
                 raise

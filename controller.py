@@ -163,6 +163,12 @@ class AmendmentApp(tk.Tk):
         self.bind("<Escape>", lambda e: self.destroy())
         self.bind("<Control-s>", self.save_to_source)
         self.bind("<Control-S>", self.save_to_source)
+        self.bind("<Control-r>", self.pull_from_email)
+        self.bind("<Control-R>", self.pull_from_email)
+    
+    def pull_from_email(self, event=None):
+        self.session.pull_from_email()
+        
     
     @Log
     def _next(self, event=None):

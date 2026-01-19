@@ -1,3 +1,5 @@
 openai
 imaplib2
 fuzzywuzzy
+python-levenshtein
+html2text
