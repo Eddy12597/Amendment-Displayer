@@ -3,7 +3,7 @@
   "session": {
     "session_name": "UNSC Day 2",
     "committee": "UNSC",
-    "current_index": 2
+    "current_index": 4
   },
   "amendments": [
     {
@@ -65,6 +65,21 @@
       "friendly": false,
       "id": "6bfe8deb-93c0-4ba6-b692-f6caba8c0f27",
       "created_at": "2026-01-19T02:47:21.415912"
+    },
+    {
+      "submitter_delegate": "French Republic",
+      "resolution_main_submitter": "United Kingdom",
+      "resolution_topic": "On Peacekeeping Operations",
+      "clause": "3",
+      "sub_clause": "b",
+      "sub_sub_clause": null,
+      "context": "Encourages regional cooperation",
+      "amendment_type": "ADD",
+      "text": "Establishes a rapid deployment fund of $50 million for peacekeeping operations in Sub-Saharan Africa.",
+      "reason": "Provides necessary financial mechanisms for effective regional peacekeeping.",
+      "friendly": false,
+      "id": "73562589-3a5c-4421-a456-9bf0604741d3",
+      "created_at": "2026-01-19T03:31:10.389686"
     }
   ]
 }
