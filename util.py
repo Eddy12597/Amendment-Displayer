@@ -41,7 +41,7 @@ class TeeLogger:
         elif isinstance(other, Lvl):
             if other == Lvl.FATAL:
                 self.raise_afterward = True
-        self.content += other
+        self.content += other # type: ignore
         return self
     
 log = TeeLogger(sys.stdout, open("./app.log", "w"))
@@ -94,3 +94,25 @@ def html_to_text(html_body: str) -> str:
     h.body_width = 0  # no hard wrapping
 
     return h.handle(html_body).strip()
+
+import tkinter as tk
+from itertools import cycle
+
+class TextSpinner:
+    def __init__(self, parent):
+        self.label = tk.Label(parent, text="", font=("Courier", 14))
+        self.label.pack(pady=20)
+        
+        # Different spinner character sets
+        # self.spinner_chars = cycle(['|', '/', '-', '\\'])
+        self.spinner_chars = cycle(['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'])
+        # or: cycle(['◐', '◓', '◑', '◒'])
+        # or: cycle(['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'])
+        
+    def start(self):
+        self.update_spinner()
+        
+    def update_spinner(self):
+        char = next(self.spinner_chars)
+        self.label.config(text=f"Loading {char}")
+        self.label.after(100, self.update_spinner)  # Update every 100ms

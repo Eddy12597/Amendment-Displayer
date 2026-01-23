@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import Any, List, Optional
 import re
+import roman
 from uuid import uuid4
 
 import dotenv
@@ -32,12 +33,17 @@ class AmendmentType(Enum):
 @dataclass
 class Amendment:
     submitter_delegate: str
-    resolution_main_submitter: Optional[str]
-    resolution_topic: Optional[str]
-
+    
+    # these string-based fields will be replaced in the future
     clause: str
     sub_clause: Optional[str] = None
     sub_sub_clause: Optional[str] = None
+    
+    resolution_main_submitter: str | None = None
+    resolution_topic: str | None = None
+    
+    address_resolution: Resolution | None = None
+    address_node: clause | subclause | subsubclause | None = None
 
     context: str = ""
 
@@ -49,6 +55,7 @@ class Amendment:
 
     id: str = field(default_factory=lambda: str(uuid4()))
     created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+
 
     def __post_init__(self):
         self._validate()
@@ -316,6 +323,43 @@ class Amendment:
             return Amendment.from_json(ans)
         else:
             return Amendment.attempt_basic_parsing(em)
+    
+    def apply_to_resolution(self, reso: Resolution) -> bool:
+        """
+        Applies Amendment to Resolution, then returns if it can be applied
+        """
+        c = int(self.clause)
+        sc = self.sub_clause
+        ssc = self.sub_sub_clause
+        if sc: sc = ord(sc) - ord("a") + 1
+        if ssc: ssc = roman.fromRoman(ssc)
+        
+        if (self.amendment_type == AmendmentType.ADD):
+            if ssc and self.text:
+                reso.clauses[c].subclauses[sc].append(subsubclause(ssc, self.text))
+            elif sc and self.text:
+                reso.clauses[c].append(subclause(sc, self.text))
+            elif self.text:
+                tokens = self.text.split(" ")
+                scidx = None
+                try:
+                    scidx = tokens.index(":")
+                except ValueError:
+                    try:
+                        scidx = tokens.index(";")
+                    except ValueError:
+                        try:
+                            scidx = tokens.index("limited to:")
+                        except ValueError as ve:
+                            log << Lvl.FATAL << "Cannot split where subclause starts: " << ve << "\nin " << self.text << endl
+                if not scidx:
+                    log << Lvl.FATAL << "Cannot split where subclause starts: " << "\nin " << self.text << endl
+                reso.clauses.append(clause(c, tokens[0], " ".join(tokens[1:scidx])))
+                # TODO: add sub-clause level parsing logic
+                raise NotImplementedError()
+            
+        
+        return True
 
 @dataclass
 class AmendmentSession:

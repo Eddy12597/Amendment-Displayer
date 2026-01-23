@@ -59,8 +59,22 @@ class EmailIngestor:
             raise
         log << Lvl.info << "Login Successful" << endl
         self.mailbox = mailbox
-        self.emailList: list[Email] = self.fetch_emails(init_num)
-        
+        self.emailList: list[Email] = [] # self.fetch_emails(init_num)
+    
+    def _reconnect(self):
+        try:
+            try:
+                self.mail.logout()
+            except Exception:
+                pass  # already dead
+
+            self.__init__(imap_server=self.imap_server)
+            log << Lvl.info << "IMAP reconnected successfully" << endl
+        except Exception as e:
+            log << Lvl.FATAL << f"IMAP reconnect failed: {e}" << endl
+            raise
+
+    
     @Log
     def pull(self, max_new: int = 10) -> list[Email]:
         """
@@ -89,70 +103,57 @@ class EmailIngestor:
 
     
     def fetch_emails(self, num: int = 10) -> list[Email]:
-        """
-        Fetch the latest `num` emails, using UID tracking to avoid re-fetching old messages.
-        DO NOT place in rendering loops (sleeps for a short time to avoid rate limiting)
-        """
-        try:
-            # 1️⃣ Select mailbox
-            status, response = self.mail.select(self.mailbox)
-            log << Lvl.info << f"Select status: {status}, response: {response}" << endl
-            if status != "OK":
-                raise Exception(f"Failed to select mailbox: {self.mailbox}")
-
-            # 2️⃣ Search for messages using UID
-            # Track last seen UID (default to 0)
-            last_uid = getattr(self, "_last_uid", 0)
-
-            # Search for UIDs greater than last seen UID
-            typ, data = self.mail.uid("SEARCH", None, f"UID {last_uid + 1}:*")
-            if typ != "OK":
-                raise Exception("UID search failed")
-
-            uid_list = data[0].split() # type: ignore
-            if not uid_list:
-                if not uid_list:
-                    log << Lvl.info << "No new emails to fetch" << endl
-
-                return []  # No new messages
-            
-            # maintaining politeness
-            time.sleep(0.1)
-            
-            # Only take the last `num` messages
-            uid_list = uid_list[-num:]
-
-            res: list[Email] = []
-
-            for uid_val in uid_list:
-                time.sleep(0.05)
-                typ, msg_data = self.mail.uid("FETCH", uid_val, "(RFC822)")
-                if typ != "OK":
-                    log << Lvl.warn << f"Failed to fetch UID {uid_val}" << endl
+        for attempt in (1, 2):
+            try:
+                return self._fetch_emails_once(num)
+            except Exception as e:
+                msg = str(e).lower()
+                if attempt == 1 and ("autologout" in msg or "bye" in msg):
+                    log << Lvl.warn << "IMAP autologout detected, reconnecting..." << endl
+                    self._reconnect()
                     continue
+                raise
+        raise
+            
+    def _fetch_emails_once(self, num: int) -> list[Email]:
+        status, response = self.mail.select(self.mailbox)
+        if status != "OK":
+            raise Exception(f"Failed to select mailbox: {self.mailbox}")
 
-                for response_part in msg_data:
-                    if isinstance(response_part, tuple):
-                        msg = email.message_from_bytes(response_part[1])
-
-                        subject, encoding = decode_header(msg["Subject"])[0]
-                        if isinstance(subject, bytes):
-                            subject = subject.decode(encoding if encoding else "utf-8")
-
-                        body = self.get_email_body(msg)
-                        _from = msg.get("from") or ""
-
-                        log << Lvl.info << f"Fetched email from: {_from}" << endl
-                        res.append(Email(_from, subject, body))
-
-                # Update last UID after successful fetch
-                self._last_uid = int(uid_val)
-
-            return res
-
-        except Exception as e:
-            log << Lvl.warn << f"Error fetching emails: {e}" << endl
+        last_uid = getattr(self, "_last_uid", 0)
+        typ, data = self.mail.uid("SEARCH", None, f"UID {last_uid + 1}:*")
+        if typ != "OK":
+            raise Exception("UID search failed")
+        
+        uid_list = data[0].split()
+        if not uid_list:
+            log << Lvl.info << "No new emails to fetch" << endl
             return []
+
+        uid_list = uid_list[-num:]
+        res: list[Email] = []
+
+        for uid_val in uid_list:
+            typ, msg_data = self.mail.uid("FETCH", uid_val, "(RFC822)")
+            if typ != "OK":
+                continue
+
+            for part in msg_data:
+                if isinstance(part, tuple):
+                    msg = email.message_from_bytes(part[1])
+                    subject, enc = decode_header(msg["Subject"])[0]
+                    if isinstance(subject, bytes):
+                        subject = subject.decode(enc or "utf-8")
+
+                    body = self.get_email_body(msg)
+                    _from = msg.get("from") or ""
+                    res.append(Email(_from, subject, body))
+
+            self._last_uid = int(uid_val)
+
+        return res
+
+
 
     
     def get_email_body(self, msg, length=1000) -> str:

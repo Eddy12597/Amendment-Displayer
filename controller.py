@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Optional
 from util import Log, log, Lvl, endl
+import threading
 
 class AmendmentController:
     def __init__(self, session, path: str = "autosave.json"):
@@ -33,6 +34,9 @@ class AmendmentSlide(ttk.Frame):
         self.badge_var = tk.StringVar()
         self.save_status = tk.StringVar()
         
+        self.spinner_active = True
+        self.spinner_index = 0
+        self.spinner_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
         
         self._build()
     
@@ -91,15 +95,42 @@ class AmendmentSlide(ttk.Frame):
         )
         self.reason.grid(row=4, column=0, pady=10, **layout_padding)
 
-        self.footer = ttk.Label(
+        self.footer_left = ttk.Label(
             self,
-            textvariable=self.footer_var,
+            font=("Segoe UI", 14),
+            anchor="w"
+        )
+        self.footer_left.grid(row=5, column=0, sticky="se", padx=50, pady=(30, 20))
+
+        self.footer_right = ttk.Label(
+            self,
+            textvariable=self.save_status,
             font=("Segoe UI", 14),
             anchor="e"
         )
-        # Sticky 'se' (South-East) ensures it stays at the bottom right
-        self.footer.grid(row=5, column=0, sticky="se", padx=40, pady=(30, 20))
+        self.footer_right.grid(row=5, column=0, sticky="se", padx=50, pady=(30, 20))
+    
+    def start_spinner(self, text="Loading"):
+        """Start the spinner animation"""
+        self.spinner_active = True
+        self.spinner_text = text
+        self._update_spinner()
         
+    def stop_spinner(self):
+        """Stop the spinner animation"""
+        self.spinner_active = False
+        # Clear spinner from save_status
+        self.save_status.set("")
+        
+    def _update_spinner(self):
+        if self.spinner_active:
+            char = self.spinner_chars[self.spinner_index]
+            self.spinner_index = (self.spinner_index + 1) % len(self.spinner_chars)
+            
+            self.save_status.set(f" [{char}]")
+            
+            # Schedule next update (100ms = fast, 150ms = medium, 200ms = slow)
+            self.after(150, self._update_spinner)
         
     def render(self, session):
         amendment = session.current()
@@ -132,8 +163,8 @@ class AmendmentSlide(ttk.Frame):
             f"Reason:\n{amendment.reason}" if amendment.reason else ""
         )
 
-        self.footer_var.set(
-            f"{session.committee} | {session.current_index + 1} / {len(session.amendments)} {self.save_status.get()}"
+        self.footer_left.config(
+            text=f"{session.committee} | {session.current_index + 1} / {len(session.amendments)}"
         )
 
 class AmendmentApp(tk.Tk):
@@ -167,15 +198,40 @@ class AmendmentApp(tk.Tk):
         self.bind("<Control-R>", self.pull_from_email)
     
     def pull_from_email(self, event=None):
-        self.session.pull_from_email()
+        """Pull amendments from email with spinner feedback"""
         
+        self.slide.start_spinner("Fetching emails...")
+        
+        # This ensures the spinner starts visibly before the potentially blocking operation
+        self.after(100, self._execute_pull_from_email)
     
-    @Log
+    def _execute_pull_from_email(self):
+        threading.Thread(target=self._pull_worker, daemon=True).start()
+
+    def _pull_worker(self):
+        try:
+            self.session.pull_from_email()
+            self.after(0, self._pull_success)
+        except Exception as e:
+            self.after(0, lambda: self._pull_fail(e))
+
+    def _pull_success(self):
+        self.slide.stop_spinner()
+        self.slide.save_status.set(" [✓]")
+        self._refresh()
+        self.after(1000, lambda: self.slide.save_status.set(""))
+
+    def _pull_fail(self, e):
+        self.slide.stop_spinner()
+        self.slide.save_status.set(" [X Error]")
+        log << Lvl.WARN << f"Error pulling from email: {e}" << endl
+        self.after(3000, lambda: self.slide.save_status.set(""))
+        self._refresh()
+    
     def _next(self, event=None):
         self.controller.next()
         self._refresh()
 
-    @Log
     def _prev(self, event=None):
         self.controller.prev()
         self._refresh()

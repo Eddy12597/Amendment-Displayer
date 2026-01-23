@@ -29,8 +29,8 @@ class Resolution:
                 mainSubmitter: str = "Main Submitter Country Name",
                 coSubmitters: list[str] | None = None,
                 topic: str = "Test Topic",
-                preambs: list | None = None,
-                clauses: list | None = None) -> None:
+                preambs = None,
+                clauses = None) -> None:
         self.committee = committee
         self.mainSubmitter = mainSubmitter
         self.coSubmitters = coSubmitters if coSubmitters is not None else []
