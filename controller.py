@@ -147,7 +147,10 @@ class AmendmentSlide(ttk.Frame):
 
         badge = amendment.amendment_type.value
         if amendment.friendly:
-            badge += " | FRIENDLY"
+            badge += " | PASSED"
+            self.badge.configure(foreground="#24B78D")
+        else:
+            self.badge.configure(foreground="#000000")
         self.badge_var.set(badge)
 
         self.context_var.set(amendment.context)
