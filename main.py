@@ -360,6 +360,85 @@ class Amendment:
             
         
         return True
+    def __str__(self) -> str:
+        """Return a human-readable string representation of the amendment."""
+        parts = []
+        
+        # Basic identification
+        parts.append(f"Amendment {self.id[:8]}...")
+        parts.append(f"Submitted by: {self.submitter_delegate}")
+        
+        # Resolution info if available
+        if self.resolution_main_submitter or self.resolution_topic:
+            reso_info = []
+            if self.resolution_topic:
+                reso_info.append(f"Topic: {self.resolution_topic}")
+            if self.resolution_main_submitter:
+                reso_info.append(f"Main submitter: {self.resolution_main_submitter}")
+            parts.append(f"Resolution ({', '.join(reso_info)})")
+        
+        # Location
+        location = f"Clause {self.clause}"
+        if self.sub_clause:
+            location += f".{self.sub_clause}"
+        if self.sub_sub_clause:
+            location += f".{self.sub_sub_clause}"
+        parts.append(f"Location: {location}")
+        
+        # Type and content
+        parts.append(f"Type: {self.amendment_type.name}")
+        if self.text and self.amendment_type in {AmendmentType.ADD, AmendmentType.AMEND}:
+            # Truncate text if too long
+            text_preview = self.text[:100] + "..." if len(self.text) > 100 else self.text
+            parts.append(f"Text: {text_preview}")
+        elif self.amendment_type == AmendmentType.STRIKE:
+            parts.append("Action: Strike")
+        
+        # Additional info
+        if self.reason:
+            reason_preview = self.reason[:80] + "..." if len(self.reason) > 80 else self.reason
+            parts.append(f"Reason: {reason_preview}")
+        
+        if self.friendly:
+            parts.append("(Friendly amendment)")
+        
+        parts.append(f"Created: {self.created_at}")
+        
+        return "\n".join(parts)
+
+    def to_json(self) -> dict[str, Any]:
+        """Convert the Amendment instance to a JSON-serializable dictionary."""
+        json_dict = {
+            "id": self.id,
+            "created_at": self.created_at,
+            "submitter_delegate": self.submitter_delegate,
+            "clause": self.clause,
+            "amendment_type": self.amendment_type.name,
+            "friendly": self.friendly,
+        }
+        
+        # Add optional fields if they exist
+        if self.sub_clause is not None:
+            json_dict["sub_clause"] = self.sub_clause
+        if self.sub_sub_clause is not None:
+            json_dict["sub_sub_clause"] = self.sub_sub_clause
+        if self.resolution_main_submitter is not None:
+            json_dict["resolution_main_submitter"] = self.resolution_main_submitter
+        if self.resolution_topic is not None:
+            json_dict["resolution_topic"] = self.resolution_topic
+        if self.address_resolution is not None:
+            json_dict["address_resolution"] = self.address_resolution.mainSubmitter
+        if self.address_node is not None:
+            # Handle the different possible types for address_node
+            json_dict["address_node"] = str(self.address_node)
+        if self.context:
+            json_dict["context"] = self.context
+        if self.text is not None:
+            json_dict["text"] = self.text
+        if self.reason is not None:
+            json_dict["reason"] = self.reason
+        
+        return json_dict
 
 @dataclass
 class AmendmentSession:
@@ -407,7 +486,20 @@ class AmendmentSession:
     
     def add_amendment(self, amendment: Amendment) -> None:
         self.amendments.append(amendment)
+    
+    def delete_amendment(self, amendment: Amendment | None = None) -> None:
+        """
+        Deletes amendment, or the current amendment if not specified
         
+        :param amendment: the amendment to delete
+        :type amendment: Amendment | None
+        """
+        if amendment is None: 
+            amendment = self.current()
+        log << Lvl.Info << "Removing amendment: " << str(amendment) << endl
+        self.amendments.remove(amendment)
+        if self.current_index == len(self.amendments):
+            self.current_index = max(len(self.amendments) - 1, 0)
     
     # ---------- Chair controls ----------
 

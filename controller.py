@@ -196,6 +196,8 @@ class AmendmentApp(tk.Tk):
         self.bind("<Control-S>", self.save_to_source)
         self.bind("<Control-r>", self.pull_from_email)
         self.bind("<Control-R>", self.pull_from_email)
+        self.bind("<Control-BackSpace>", self.delete_amendment)
+        self.bind("<Control-Delete>", self.delete_amendment)
     
     def pull_from_email(self, event=None):
         """Pull amendments from email with spinner feedback"""
@@ -241,6 +243,13 @@ class AmendmentApp(tk.Tk):
         self.slide.save_status.set(" [*]")
         self.controller.save()
         self._refresh()
+    
+    def delete_amendment(self, event=None):
+        
+        self.session.delete_amendment()
+        self._refresh()
+        
+        return "break"
         
 
     def _refresh(self):

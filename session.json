@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "session": {
-    "session_name": "UNSC Day 2",
-    "committee": "UNSC",
-    "current_index": 6
+    "session_name": "ECOSOC",
+    "committee": "ECOSOC",
+    "current_index": 2
   },
   "amendments": [
     {
@@ -39,40 +39,6 @@
       "friendly": false,
       "id": "8a4d2c91-1c6b-42fa-9a8e-6f4e9f3a2b11",
       "created_at": "2026-01-12T08:22:10.000000"
-    },
-    {
-      "submitter_delegate": "Russian Federation",
-      "clause": "7",
-      "sub_clause": "a",
-      "sub_sub_clause": null,
-      "resolution_main_submitter": "United States",
-      "resolution_topic": "Climate Security",
-      "address_resolution": null,
-      "address_node": null,
-      "context": "Encourages the integration of climate risk assessments into peacekeeping mandates.",
-      "amendment_type": "STRIKE",
-      "text": null,
-      "reason": "The clause exceeds the Security Council\u2019s mandate and may interfere with national sovereignty.",
-      "friendly": false,
-      "id": "c2f7a1b3-91e5-4b6e-88a2-9d4b7e1c5f22",
-      "created_at": "2026-01-12T08:30:45.000000"
-    },
-    {
-      "submitter_delegate": "Singapore",
-      "clause": "2",
-      "sub_clause": "c",
-      "sub_sub_clause": null,
-      "resolution_main_submitter": "United States",
-      "resolution_topic": "digital trade",
-      "address_resolution": null,
-      "address_node": null,
-      "context": "Promotes open data standards.",
-      "amendment_type": "AMEND",
-      "text": "Promotes interoperable open data standards, with due regard for data privacy and sovereignty concerns.",
-      "reason": "Adds necessary qualifiers for broader acceptance.",
-      "friendly": false,
-      "id": "6bfe8deb-93c0-4ba6-b692-f6caba8c0f27",
-      "created_at": "2026-01-19T02:47:21.415912"
     },
     {
       "submitter_delegate": "French Republic",
